@@ -1,7 +1,8 @@
 # device/device.py
 import socket
 import time
-from device.utils import device_handshake, send_encrypted_message
+from device.utils import device_handshake, send_encrypted_message, send_encrypted_image
+import os
 
 def start_client(server_host="localhost", server_port=9000):
     """
@@ -17,13 +18,23 @@ def start_client(server_host="localhost", server_port=9000):
             return
 
         print("Handshake başarılı. Artık şifreli-MAC’li metin gönderilebilir.")
+        # device/device.py içinde, mesaj döngüsünde (send loop):
         while True:
-            message = input("Göndermek istediğiniz metni yazın ('exit' ile çık): ")
-            if message.lower() == "exit":
+            choice = input("1) Metin gönder\n2) Resim gönder\n3) Çıkış\nSeçiminiz: ")
+            if choice == "3":
                 break
-            # 1 saniye bekleyelim (örnek zamanlama, opsiyonel)
-            time.sleep(0.2)
-            send_encrypted_message(sock, enc_key, mac_key, message)
+            elif choice == "1":
+                message = input("Göndermek istediğiniz metni yazın: ")
+                send_encrypted_message(sock, enc_key, mac_key, message)
+            elif choice == "2":
+                path = input("Göndermek istediğiniz resmin tam yolu: ")
+                if os.path.exists(path):
+                    send_encrypted_image(sock, enc_key, mac_key, path)
+                else:
+                    print("Dosya bulunamadı, lütfen geçerli bir yol girin.")
+            else:
+                print("Geçersiz seçim.")
+
 
         print("Client çıkıyor.")
 

@@ -15,6 +15,9 @@ from utils.crypto import (
     aes_encrypt,
     compute_hmac,
 )
+import base64
+# server/utils.py içinde de:
+import os
 
 # ----------------------------
 # Logging Ayarları
@@ -151,3 +154,28 @@ def send_encrypted_message(sock, enc_key: bytes, mac_key: bytes, message: str):
     msg_logger.info(f"Şifreli mesaj gönderildi: “{message}”")
 
 
+
+def send_encrypted_image(sock, enc_key: bytes, mac_key: bytes, image_path: str):
+    """
+    image_path ile verilen resmi okur, Base64’e çevirir, 
+    ardından mevcut send_encrypted_message() fonksiyonuyla iletir.
+    """
+    # 1) Dosyayı oku (binary modda)
+    with open(image_path, "rb") as f:
+        image_data = f.read()
+
+    # 2) Base64 encode et → bytes çıktısı
+    b64_bytes = base64.b64encode(image_data)  # örn: b'iVBORw0KGgoAAAANS...'
+
+    # 3) UTF-8 string’e dönüştür (mevcut send fonksiyon str bekliyor ise)
+    b64_str = b64_bytes.decode("utf-8")
+
+    # 4) Eğer dosya ismini sunucu tarafında da bilmesi isteniyorsa, eklenti olarak gönderebilirsiniz.
+    #    Örneğin mesajın başına “IMGFILENAME::” ekleyebilirsiniz:
+    filename = os.path.basename(image_path)
+    marker = "__IMG__"  # kendi belirleyeceğiniz bir işaret
+    payload = marker + filename + "::" + b64_str
+    # → Örnek: "__IMG__foto.png::iVBORw0KGgoAAAANSUhEUgAA..."
+
+    # 5) Mevcut metin gönderme fonksiyonunu çağıralım
+    send_encrypted_message(sock, enc_key, mac_key, payload)
