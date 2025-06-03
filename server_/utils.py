@@ -17,6 +17,9 @@ from utils.crypto import (
     compute_hmac,
     verify_hmac,
 )
+import base64
+# server/utils.py içinde de:
+import os   
 
 # ----------------------------
 # Logging Ayarları
@@ -195,9 +198,74 @@ def start_server(host="localhost", port=9000):
 
             hs_logger.info("Client bağlantısı kapandı.")
             
-# server/server.py
-from server.utils import start_server
 
-if __name__ == "__main__":
-    # Host ve port’ı ihtiyacınıza göre değiştirebilirsiniz.
-    start_server(host="localhost", port=9000)
+# server/utils.py
+
+import base64
+import os
+
+# ... (diğer importlar, log ayarları, vs.)
+
+def save_received_image(plaintext: str, save_dir: str = "server/received_images"):
+    """
+    Handshake sonrası çözümlenen plaintext metnini kontrol eder.
+    Başında `__IMG__` marker’ı varsa, Base64’ü decode edip diske kaydeder.
+    """
+    marker = "__IMG__"
+    if not plaintext.startswith(marker):
+        return False  # Bu bir resim mesajı değil
+
+    # Örnek format: "__IMG__dosyaadi.png::iVBORw0KGgoAAAANS..."
+    try:
+        # 1) Marker’ı at, kalan string'i iki parçaya ("dosyaadi.png", "b64veri") ayır
+        without_marker = plaintext[len(marker):]            # "dosyaadi.png::iVBORw0K..."
+        filename, b64_str = without_marker.split("::", 1)
+    except Exception as e:
+        # Yanlış format
+        return False
+
+    # 2) save_dir dizini yoksa oluştur
+    os.makedirs(save_dir, exist_ok=True)
+
+    # 3) Base64 string’i tekrar byte dizisine çevir
+    image_data = base64.b64decode(b64_str.encode("utf-8"))
+
+    # 4) Dosyayı diske yaz
+    out_path = os.path.join(save_dir, filename)
+    with open(out_path, "wb") as img_f:
+        img_f.write(image_data)
+
+    return True
+
+def start_server(host="localhost", port=9000):
+    """
+    Server dinleme ve gelen verileri işleme (mesaj/metin ya da resim) akışı.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((host, port))
+        s.listen(1)
+        hs_logger.info(f"Server dinlemede: {host}:{port}")
+        conn, addr = s.accept()
+        with conn:
+            hs_logger.info(f"Client bağlandı: {addr}")
+            enc_key, mac_key = server_handshake(conn)
+            if enc_key is None:
+                return
+
+            # Ana döngü: gelen her paketi al, şifre çöz, HMAC kontrol et, sonra işleme al
+            while True:
+                plaintext = receive_encrypted_message(conn, enc_key, mac_key)
+                if plaintext is None:
+                    break
+
+                # 1) Önce resim mi kontrol et:
+                if save_received_image(plaintext):
+                    msg_logger.info("Bir resim alındı ve kaydedildi.")
+                    print("[Server] Resim alındı ve diske yazıldı.")
+                    continue
+
+                # 2) Normal metin mesajı ise:
+                msg_logger.info(f"Alınan metin: {plaintext}")
+                print(f"[Client]: {plaintext}")
+
+            hs_logger.info("Client bağlantısı kapandı.")
