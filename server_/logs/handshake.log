@@ -1,0 +1,11 @@
+[2025-06-03 12:00:10,751] INFO Server dinlemede: localhost:9000
+[2025-06-03 12:02:14,199] INFO Client bağlandı: ('127.0.0.1', 40638)
+[2025-06-03 12:02:14,220] INFO Client sertifikası doğrulandı.
+[2025-06-03 12:02:14,221] INFO Server Hello paketi gönderildi.
+[2025-06-03 12:02:14,222] INFO Shared secret ve simetrik anahtarlar türetildi.
+[2025-06-03 12:02:39,724] INFO Client bağlantısı kapandı.
+[2025-06-03 12:03:28,966] INFO Server dinlemede: localhost:9000
+[2025-06-03 12:03:36,842] INFO Client bağlandı: ('127.0.0.1', 47870)
+[2025-06-03 12:03:36,863] INFO Client sertifikası doğrulandı.
+[2025-06-03 12:03:36,863] INFO Server Hello paketi gönderildi.
+[2025-06-03 12:03:36,864] INFO Shared secret ve simetrik anahtarlar türetildi.
